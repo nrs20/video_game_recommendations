@@ -1,12 +1,15 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, Markup, redirect, url_for, flash, session
 import random
 import pandas as pd
 import numpy as np
 import requests
 import re
-
+import urllib.parse 
 from bs4 import BeautifulSoup
-
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Email, EqualTo
+from flask_bcrypt import Bcrypt
 app = Flask(__name__)
 
 # Preprocessed game data
@@ -51,18 +54,23 @@ def fetch_game_description(title):
 
         # Get the description from the API response
         description = game_data.get("description", "Description not available.")
+        if description == "Description not available.":
+            # If description is not available, create a Google search link
+            google_search_link = f"https://www.google.com/search?q={urllib.parse.quote(title)}"
+            return Markup(f"Description not available. <a href='{google_search_link}' target='_blank'>Search on Google</a>.")
+        else:
   # Use BeautifulSoup to remove HTML elements and convert HTML entities
-        soup = BeautifulSoup(description, "html.parser")
-        clean_description = soup.get_text()
+            soup = BeautifulSoup(description, "html.parser")
+            clean_description = soup.get_text()
         # Remove HTML tags from the description using regular expression
-        clean_description = re.sub('<[^<]+?>', '', description)
+            clean_description = re.sub('<[^<]+?>', '', description)
 
         # Split the description into sentences and take the first two sentences
-        sentences = clean_description.split('. ')
-        if len(sentences) >= 2:
-            clean_description = '. '.join(sentences[:2])
+            sentences = clean_description.split('. ')
+            if len(sentences) >= 2:
+                clean_description = '. '.join(sentences[:2])
 
-        return clean_description
+            return clean_description
     except requests.exceptions.RequestException as e:
         print(f"Error fetching description for {title}: {e}")
         return "Error fetching description."
