@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recommended Games</title>
+</head>
+<body>
+    <h1>Recommended Games</h1>
+    <ul>
+        {% for game in games %}
+        <li>{{ game.Name }} (Genre: {{ game.Genre|join(", ") }}, User Score: {{ game.User_Score }})</li>
+        {% endfor %}
+    </ul>
+    <button onclick="regenerateGames()">Regenerate</button>
+
+    <script>
+        function regenerateGames() {
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
