@@ -7,7 +7,14 @@
     <h1>Recommended Games</h1>
     <ul>
         {% for game in games %}
-        <li>{{ game.Name }} (Genre: {{ game.Genre|join(", ") }}, User Score: {{ game.User_Score }}, Platform: {{game.Platform}}, Description: {{game.Description}})</li>
+        <li>
+            {% if game.Description %}
+                {{ game.Name }} (Genre: {{ game.Genre|join(", ") }}, User Score: {{ game.User_Score }}, Platform: {{game.Platform}})
+                <p>Description: {{game.Description}}</p>
+            {% else %}
+                <a href="https://www.google.com/search?q={{ game.Name }}" target="_blank">{{ game.Name }}</a> (Genre: {{ game.Genre|join(", ") }}, User Score: {{ game.User_Score }}, Platform: {{game.Platform}})
+            {% endif %}
+        </li>
         {% endfor %}
     </ul>
     <button onclick="regenerateGames()">Regenerate</button>
