@@ -7,7 +7,7 @@
     <h1>Recommended Games</h1>
     <ul>
         {% for game in games %}
-        <li>{{ game.Name }} (Genre: {{ game.Genre|join(", ") }}, User Score: {{ game.User_Score }})</li>
+        <li>{{ game.Name }} (Genre: {{ game.Genre|join(", ") }}, User Score: {{ game.User_Score }}, Platform: {{game.Platform}}, Description: {{game.Description}})</li>
         {% endfor %}
     </ul>
     <button onclick="regenerateGames()">Regenerate</button>
