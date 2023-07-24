@@ -2,6 +2,10 @@ from flask import Flask, render_template, request
 import random
 import pandas as pd
 import numpy as np
+import requests
+import re
+
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
@@ -31,27 +35,65 @@ for game in games:
 @app.route("/")
 def index():
     return render_template("index.html")
+def fetch_game_description(title):
+    # Replace YOUR_API_KEY with your actual API key from RAWG (sign up to get the API key)
+    api_key = "33b676f49ef74f21860f648158668b42"
+    formatted_title = title.replace(" ", "-").replace(":", "").replace("'", "").replace(".", "").lower()
 
+    # Remove consecutive hyphens (replace them with a single hyphen)
+    formatted_title = formatted_title.replace("--", "-")    
+    url = f"https://api.rawg.io/api/games/{formatted_title.lower()}?key={api_key}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        game_data = response.json()
+
+        # Get the description from the API response
+        description = game_data.get("description", "Description not available.")
+  # Use BeautifulSoup to remove HTML elements and convert HTML entities
+        soup = BeautifulSoup(description, "html.parser")
+        clean_description = soup.get_text()
+        # Remove HTML tags from the description using regular expression
+        clean_description = re.sub('<[^<]+?>', '', description)
+
+        # Split the description into sentences and take the first two sentences
+        sentences = clean_description.split('. ')
+        if len(sentences) >= 2:
+            clean_description = '. '.join(sentences[:2])
+
+        return clean_description
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching description for {title}: {e}")
+        return "Error fetching description."
 @app.route("/recommend", methods=["POST"])
 def recommend_games():
     genre = request.form.get("genre")
+    platform = request.form.get("platform")
     user_score_threshold = float(request.form.get("user_score"))
 
     # Implement your recommendation logic based on user input
     recommended_games = [
         game for game in games
         if genre.lower() in [genre.lower() for genre in game["Genre"]]
+        and game["Platform"] and platform.lower() in [platform.lower() for platform in game["Platform"]]
         and not np.isnan(game["User_Score"])
         and game["User_Score"] >= user_score_threshold
     ]
 
+    # Fetch descriptions for each game using the RAWG API
+    for game in recommended_games:
+        title = game['Name']
+        game['Description'] = fetch_game_description(title)
+
     # Shuffle the recommended games list and choose 15 random games
     random.shuffle(recommended_games)
-    recommended_games = recommended_games[:15]
+    recommended_games = recommended_games[:5]
 
     print(recommended_games)  # Add this line to check the content of recommended_games
 
     return render_template("recommendations.html", games=recommended_games)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
