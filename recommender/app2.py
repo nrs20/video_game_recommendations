@@ -296,40 +296,43 @@ def show_favorites():
 
         # Get the complete game data for each game in the favorites list
         favorite_games = [game for game in games if game['Name'] in favorites_list]
-        print("THIS IS FAVORITE GAMES:", favorite_games)
+
         # Fetch the game info from the session
         game_info = session.get('game_info', {})
-        print("THIS IS GAME INFO", game_info)
-        print("---------")
-        
+
         # Convert the favorite_games list into a dictionary with game names as keys and game data as values
         favorite_games_dict = {}
         for game in favorite_games:
             game_name = game['Name']
-            print("THIS IS GAME_NAME", game_name)
             if game_name not in favorite_games_dict:
                 favorite_games_dict[game_name] = game
-        print(favorite_games_dict.items())
-        print("^^^^^^^^^^^^^^^")
-        #print(game_info[genre])
-        # Attach the Reddit URL to the favorite games from the game_info
+
+        # Attach the Reddit URL, developers, and metacritic to the favorite games from the game_info
         for game_name, game_data in favorite_games_dict.items():
-            genre = game_data['Genre'][0]  # Assuming you have one genre for each game in 'Genre' list
-            print("THIS IS GENRE", genre)
-            #everything = game_info[game['Name']['Genre']]
-            #print("THIS IS EVERYTHING", everything)
-            game_info_genre = game_info.get(genre, {})  # Get the game_info for the corresponding genre
-            game_info_data = game_info_genre.get(game_name, {})  # Get the game_info for the specific game title
-            print("THIS IS GAME INFO DATA", game_info_data)
+            genre = game_data['Genre'][0]  # Assuming you have one genre for each game in the 'Genre' list
+
+            # Get the game_info for the corresponding genre from the session
+            game_info_genre = game_info.get(genre, {})
+            # Get the game_info for the specific game title from the genre's game_info
+            game_info_data = game_info_genre.get(game_name, {})
+
+            # Get the reddit_url, developers, and metacritic from the game_info
             reddit_url = game_info_data.get('reddit_url')
             developers = game_info_data.get('developers')
-            meta = game_info_data.get('metacritic_url')
+            meta = game_info_data.get('metacritic')
 
+            # Update the game_data dictionary with the retrieved data
             game_data['reddit_url'] = reddit_url if reddit_url else 'No Reddit URL available.'
             game_data['developers'] = developers if developers else 'No developer available'
             game_data['metacritic'] = meta if meta else 'No Metacritic URL available.'
-    
-        print("FAVORITES", favorite_games_dict)
+
+        # Save the updated favorites list to the database
+        updated_favorites_list = list(favorite_games_dict.keys())
+        updated_favorites_list_str = ','.join(updated_favorites_list)
+        print("THIS IS FAVORITE GAMES DICT",favorite_games_dict)
+        cursor.execute('UPDATE user SET favorites = %s WHERE email = %s', (updated_favorites_list_str, session['email'],))
+        mysql.connection.commit()
+
         return render_template('favorites.html', favorites=favorite_games_dict, game_info=session.get('game_info', {}))
     else:
         return redirect(url_for('login'))
@@ -370,5 +373,15 @@ def remove_from_favorites():
             return redirect(url_for('favorites'))
     else:
         return redirect(url_for('login'))  # Redirect to the login page if not logged in
+@app.route('/clear_game_info')
+def clear_game_info():
+    if 'game_info' in session:
+        session.pop('game_info')
+        print("AFERT POP", session.get('game_info'))
+    else:
+        print("'game_info' not found in the session.")
+    return 'game_info session cleared!'
+
+    
 if __name__ == "__main__":
     app.run(debug=True)
